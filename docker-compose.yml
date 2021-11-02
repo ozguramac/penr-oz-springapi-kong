@@ -1,0 +1,39 @@
+version: '3'
+services:
+  kong:
+    image: kong:2.6.0
+    container_name: kong
+    environment:
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: '0.0.0.0:8001'
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/declarative/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+    volumes:
+      - ./kong/kong.yml:/usr/local/kong/declarative/kong.yml
+    ports:
+      - "8000:8000/tcp"
+      - "127.0.0.1:8001:8001/tcp"
+      - "8443:8443/tcp"
+      - "127.0.0.1:8444:8444/tcp"
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: on-failure
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  penr-oz-springapi-kong:
+    image: openjdk:11-jre-slim
+    container_name: penr-oz-springapi-kong
+    depends_on:
+      - kong
+    volumes:
+      - ./build/libs/penr-oz-springapi-kong-0.0.1.jar:/app.jar
+    entrypoint: java
+    command: -jar /app.jar
